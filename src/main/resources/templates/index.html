@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Processor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        textarea, input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            background-color: #f9f9f9;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus, input[type="text"]:focus, select:focus {
+            border-color: #4CAF50;
+            background-color: #fff;
+            outline: none;
+        }
+
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        input[type="submit"]:hover {
+            background-color: #45a049;
+        }
+
+        .output-section {
+            margin-top: 30px;
+        }
+
+        .output-section h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #333;
+            font-size: 14px;
+        }
+
+
+
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-group, .change-group {
+            margin-bottom: 20px;
+            padding: 10px;
+        }
+
+        .remove-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 5px 10px;
+            float: right;
+        }
+
+        .add-button {
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            padding: 5px 10px;
+        }
+
+        .output-container {
+            display: flex; /* 使用 flexbox 布局 */
+            align-items: flex-start; /* 垂直对齐 */
+            gap: 10px; /* 按钮和文本区域之间的间距 */
+        }
+
+        .copy-button {
+            padding: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>JSON Processor</h1>
+
+    <form id="jsonForm">
+        <div class="form-group">
+            <label for="inputJson">输入 JSON:</label>
+            <textarea id="inputJson" name="inputJson" rows="6" placeholder='{"a":{"b":10}}'></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>过滤条件:</label>
+            <div id="filterContainer">
+                <div class="filter-group">
+                    <input type="text" class="filter-path" placeholder="路径 (例如: a.b)"/>
+                    <input type="text" class="filter-value" placeholder="值 (例如: 10)"/>
+                    <button type="button" class="remove-button" onclick="removeFilter(this)">删除</button>
+                </div>
+            </div>
+            <button type="button" class="add-button" onclick="addFilter()">添加过滤条件</button>
+        </div>
+
+        <div class="form-group">
+            <label>数据变更:</label>
+            <div id="changeContainer">
+                <div class="change-group">
+                    <select class="change-type">
+                        <option value="ADD">新增</option>
+                        <option value="UPDATE">修改</option>
+                        <option value="DELETE">删除</option>
+                    </select>
+
+
+                    <input type="text" class="change-path" placeholder="键 (例如: a.c)"/>
+                    <input type="text" class="change-value" placeholder="值 (例如: 20)"/>
+
+                    <select class="value-type">
+                        <option value="string">字符串</option>
+                        <option value="integer">整数</option>
+                        <option value="float">小数</option>
+                    </select>
+                    <button type="button" class="remove-button" onclick="removeChange(this)">删除</button>
+                </div>
+            </div>
+        </div>
+
+        <input type="submit" value="提交">
+    </form>
+
+    <div class="output-section">
+        <h2>输出结果:</h2>
+        <div class="output-container">
+            <!-- 用于展示JSON输出 -->
+            <pre id="outputJson" style="flex-grow: 1; white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; overflow: auto;"></pre>
+            <button type="button"  class="copy-button" id="copyButton" onclick="copyToClipboard()">复制</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 添加过滤条件
+    function addFilter() {
+        const filterContainer = document.getElementById('filterContainer');
+        const newFilter = document.createElement('div');
+        newFilter.className = 'filter-group';
+        newFilter.innerHTML = `
+            <input type="text" class="filter-path" placeholder="路径 (例如: a.b)" />
+            <input type="text" class="filter-value" placeholder="值 (例如: 10)" />
+            <button type="button" class="remove-button" onclick="removeFilter(this)">删除</button>
+        `;
+        filterContainer.appendChild(newFilter);
+    }
+
+    // 删除过滤条件
+    function removeFilter(button) {
+        const filterGroup = button.parentElement;
+        filterGroup.remove();
+    }
+
+    // 添加数据变更
+    function addChange() {
+        const changeContainer = document.getElementById('changeContainer');
+        const newChange = document.createElement('div');
+        newChange.className = 'change-group';
+        newChange.innerHTML = `
+             <select class="change-type">
+                        <option value="ADD">新增</option>
+                        <option value="UPDATE">修改</option>
+                        <option value="DELETE">删除</option>
+                    </select>
+
+
+                    <input type="text" class="change-path" placeholder="路径 (例如: a.c)" />
+                    <input type="text" class="change-value" placeholder="值 (例如: 20)" />
+
+                    <select class="value-type" onchange="updateValuePlaceholder(this)">
+                        <option value="string">字符串</option>
+                        <option value="integer">整数</option>
+                        <option value="float">小数</option>
+                    </select>
+                    <button type="button" class="remove-button" onclick="removeChange(this)">删除</button>
+
+        `;
+        changeContainer.appendChild(newChange);
+    }
+
+    // 删除数据变更
+    function removeChange(button) {
+        const changeGroup = button.parentElement;
+        changeGroup.remove();
+    }
+
+    function updateValuePlaceholder(select) {
+        const valueInput = select.closest('.change-group').querySelector('.change-value');
+        const valueType = select.value;
+
+        switch (valueType) {
+            case 'string':
+                valueInput.placeholder = "字符串值";
+                break;
+            case 'integer':
+                valueInput.placeholder = "整数值";
+                break;
+            case 'float':
+                valueInput.placeholder = "小数值";
+                break;
+            default:
+                valueInput.placeholder = "值";
+        }
+    }
+
+    // 处理表单提交
+    document.getElementById('jsonForm').addEventListener('submit', function (event) {
+        event.preventDefault();  // 阻止默认表单提交行为
+
+        const inputJson = document.getElementById('inputJson').value;
+
+        // 获取过滤条件
+        const filters = Array.from(document.querySelectorAll('.filter-group')).map(group => {
+            const path = group.querySelector('.filter-path').value;
+            const value = group.querySelector('.filter-value').value;
+            return {path, value};
+        });
+
+        // 获取数据变更
+        const changes = Array.from(document.querySelectorAll('.change-group')).map(group => {
+            const path = group.querySelector('.change-path').value;
+            const value = group.querySelector('.change-value').value;
+            const type = group.querySelector('.change-type').value;
+            const valueType = group.querySelector('.value-type').value;
+
+            return {path, value, type, valueType};
+        });
+
+        // 将表单数据构造成JSON对象
+        const requestData = {
+            inputJson: inputJson,
+            filters: filters,
+            changes: changes
+        };
+
+        // 使用 fetch API 发送 POST 请求
+        fetch('/process-json', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+            .then(response => response.json())  // 解析JSON响应
+            .then(data => {
+                // 将压缩后的JSON显示在页面上的输出框中
+                document.getElementById('outputJson').textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('处理失败，请检查输入。');
+            });
+    });
+
+    function copyToClipboard() {
+        const outputArea = document.getElementById('outputJson');
+        const jsonData = outputArea.innerText; // 从 innerText 获取内容
+
+        navigator.clipboard.writeText(jsonData)
+            .then(() => {
+                alert('已复制到剪切板！');
+            })
+            .catch(err => {
+                console.error('复制失败:', err);
+                alert('复制失败，请手动复制。');
+            });
+    }
+
+
+
+
+</script>
+
+</body>
+</html>
